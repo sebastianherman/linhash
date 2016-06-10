@@ -14,7 +14,7 @@ public:
     virtual const char * what() const noexcept override { return "HermansLinearHashtable: empty"; }
 };
 
-template <typename E, size_t N=2>
+template <typename E, size_t N=40>
 class HermansLinearHashtable : public Container<E> {
     class Bucket {
         size_t bucketSize;
@@ -100,14 +100,27 @@ class HermansLinearHashtable : public Container<E> {
             /* Check if element is in one of the buckets including overflow buckets */
             if (memberOfBucket(e)) {
 
+//                    std::cout << e;
+
                 /* Check if element is in the current bucket */
                 if (memberOfBucket_(e)) {
 
+//                    std::cout << e;
+
                     /* If the current bucket is not empty and does not have another overflow bucket */
                     if (elementsInBucket > 0 && !this->hasOverflow) {
+
+//                        std::cout << e;
+
                         size_t positionOfElement = findElementPosition(e);
+
+//                        std::cout << positionOfElement;
                         for (size_t i = positionOfElement; i < elementsInBucket; i++) {
-                            v[i] = v[i+1];
+
+                            if (!(i+1 >= elementsInBucket)) {
+                                v[i] = v[i+1];
+                            }
+
                         }
                         elementsInBucket--;
                     }
@@ -116,7 +129,11 @@ class HermansLinearHashtable : public Container<E> {
                     else if (elementsInBucket > 0 && this->hasOverflow && this->nextBucket != nullptr) {
                         size_t positionOfElement = findElementPosition(e);
                         for (size_t i = positionOfElement; i < elementsInBucket; i++) {
-                            v[i] = v[i+1];
+
+                            if (!(i+1 >= elementsInBucket)) {
+                                v[i] = v[i+1];
+                            }
+
                         }
                         elementsInBucket--;
 
@@ -396,7 +413,9 @@ class HermansLinearHashtable : public Container<E> {
 
     void remove_(const E& e) {
         if (member_(e)) {
+//            std::cout << e;
             size_t elementToBeDeletedBucketIndex = getIndex(e, this->d);
+//            std::cout << elementToBeDeletedBucketIndex;
             hashTable[elementToBeDeletedBucketIndex]->removeElementFromBucket(e);
         }
         else {
