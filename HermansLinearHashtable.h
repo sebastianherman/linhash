@@ -21,6 +21,7 @@ class HermansLinearHashtable : public Container<E> {
         size_t elementsInBucket;
         E v[N];
         bool hasOverflow;
+        bool lastBucket;
         Bucket * nextBucket = nullptr;
 
         /* Function to decide if the current bucket is full */
@@ -58,10 +59,33 @@ class HermansLinearHashtable : public Container<E> {
             return false;
         }
 
+        Bucket * getBeforeLastBucketPointer() {
+            Bucket * beforeLastBucketPointer = this;
+            while (!beforeLastBucketPointer->lastBucket) {
+                if (beforeLastBucketPointer->nextBucket != nullptr && beforeLastBucketPointer->nextBucket->nextBucket ==
+                                                                      nullptr) {
+                    return beforeLastBucketPointer;
+                }
+                beforeLastBucketPointer = beforeLastBucketPointer->nextBucket;
+            }
+            return beforeLastBucketPointer;
+        }
+
+        Bucket * getLastBucketPointer() {
+            Bucket * lastBucket = this;
+            while (lastBucket != nullptr) {
+                if (lastBucket->nextBucket == nullptr) {
+                    return lastBucket;
+                }
+                lastBucket = lastBucket->nextBucket;
+            }
+            return lastBucket;
+        }
+
 
     public:
         /* Bucket constructor */
-        Bucket() : bucketSize(N), elementsInBucket(0), hasOverflow(false) {}
+        Bucket() : bucketSize(N), elementsInBucket(0), hasOverflow(false), lastBucket(true) {}
 
         ~Bucket() {
             if (this->hasOverflow) {
@@ -82,7 +106,9 @@ class HermansLinearHashtable : public Container<E> {
                 if (isFull() && nextBucket==nullptr && this->hasOverflow==false) {
                     nextBucket = new Bucket;
                     this->hasOverflow = true;
+                    this->lastBucket = false;
                     nextBucket->addElementInBucket(e);
+                    nextBucket->lastBucket = true;
                 }
                     /* If the current bucket is full and already has an overflow bucket insert into the overflow bucket */
                 else if (isFull() && this->hasOverflow==true && nextBucket!=nullptr) {
@@ -277,6 +303,36 @@ class HermansLinearHashtable : public Container<E> {
 
         }
 
+        void removeWithFlag(const E& e) {
+
+            if (memberOfBucket(e)) {
+
+                Bucket * currentBucket = this;
+
+                while (currentBucket != nullptr) {
+
+                    if (currentBucket->memberOfBucket_(e)) {
+                        size_t postionOfELement = currentBucket->findElementPosition(e);
+                        Bucket * lastBucket = getLastBucketPointer();
+                        currentBucket->v[postionOfELement] = lastBucket->v[lastBucket->elementsInBucket-1];
+                        lastBucket->elementsInBucket--;
+                        Bucket * beforeLastBucket = getBeforeLastBucketPointer();
+                        if (lastBucket->elementsInBucket == 0) {
+                            delete beforeLastBucket->nextBucket;
+                            beforeLastBucket->nextBucket = nullptr;
+                            beforeLastBucket->lastBucket = true;
+                            beforeLastBucket->hasOverflow = false;
+                        }
+                    }
+
+                    currentBucket = currentBucket->nextBucket;
+                }
+            }
+            else {
+                return;
+            }
+        }
+
         /* Function to check whether the passed argument is a member of the bucket or its corresponding overflow buckets */
         bool memberOfBucket(const E& e) const {
 
@@ -392,6 +448,9 @@ class HermansLinearHashtable : public Container<E> {
             return elementsInBucket;
         }
 
+        void setLastBucket(bool value) {
+            this->lastBucket = value;
+        }
     };
 
     /* Variables which hold data related to the hashtable */
@@ -451,6 +510,8 @@ class HermansLinearHashtable : public Container<E> {
 
                 /* If the target bucket is full; a split will occur */
             else if (targetBucket->is_full()) {
+
+//                targetBucket->setLastBucket(false);
 
                 /* Insert the element into the original table at the index */
                 hashTable[index]->addElementInBucket(e);
@@ -525,7 +586,7 @@ class HermansLinearHashtable : public Container<E> {
 //            std::cout << e;
             size_t elementToBeDeletedBucketIndex = getIndex(e, this->d);
 //            std::cout << elementToBeDeletedBucketIndex;
-            hashTable[elementToBeDeletedBucketIndex]->removeElement(e);
+            hashTable[elementToBeDeletedBucketIndex]->removeWithFlag(e);
         }
         else {
             return;
