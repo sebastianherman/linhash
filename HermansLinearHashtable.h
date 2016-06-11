@@ -59,30 +59,6 @@ class HermansLinearHashtable : public Container<E> {
             return false;
         }
 
-        Bucket * getBeforeLastBucketPointer() {
-            Bucket * beforeLastBucketPointer = this;
-            while (!beforeLastBucketPointer->lastBucket) {
-                if (beforeLastBucketPointer->nextBucket != nullptr && beforeLastBucketPointer->nextBucket->nextBucket ==
-                                                                      nullptr) {
-                    return beforeLastBucketPointer;
-                }
-                beforeLastBucketPointer = beforeLastBucketPointer->nextBucket;
-            }
-            return beforeLastBucketPointer;
-        }
-
-        Bucket * getLastBucketPointer() {
-            Bucket * lastBucket = this;
-            while (lastBucket != nullptr) {
-                if (lastBucket->nextBucket == nullptr) {
-                    return lastBucket;
-                }
-                lastBucket = lastBucket->nextBucket;
-            }
-            return lastBucket;
-        }
-
-
     public:
         /* Bucket constructor */
         Bucket() : bucketSize(N), elementsInBucket(0), hasOverflow(false), lastBucket(true) {}
@@ -122,187 +98,6 @@ class HermansLinearHashtable : public Container<E> {
             }
         }
 
-        /* Function to delete an element from bucket (or its overflow buckets) */
-        void removeElementFromBucket(const E& e) {
-
-            /* Check if element is in one of the buckets including overflow buckets */
-            if (memberOfBucket(e)) {
-
-                /* Check if element is in the current bucket */
-                if (memberOfBucket_(e)) {
-
-                    /* If the current bucket is not empty and does not have another overflow bucket */
-                    if (elementsInBucket > 0 && !this->hasOverflow) {
-
-                        size_t positionOfElement = findElementPosition(e);
-
-                        for (size_t i = positionOfElement; i < elementsInBucket; i++) {
-
-                            if (!(i+1 >= elementsInBucket)) {
-                                v[i] = v[i+1];
-                            }
-
-                        }
-                        elementsInBucket--;
-                    }
-
-                        /* If the current bucket is not empty but has other overflow buckets */
-                    else if (elementsInBucket > 0 && this->hasOverflow && this->nextBucket != nullptr) {
-                        size_t positionOfElement = findElementPosition(e);
-                        for (size_t i = positionOfElement; i < elementsInBucket; i++) {
-
-                            if (!(i+1 >= elementsInBucket)) {
-                                v[i] = v[i+1];
-                            }
-
-                        }
-                        elementsInBucket--;
-
-                        /* As longs as there is space in the current bucket, another overflow bucket exists and is not empty, add the first element of the next bucket */
-                        while (elementsInBucket < bucketSize && this->hasOverflow && nextBucket->elementsInBucket > 0) {
-                            /* Get the element of the next bucket */
-                            E firstElementOfNextBucket = nextBucket->getElement(0);
-
-                            /* Save it in the current bucket */
-                            v[elementsInBucket] = firstElementOfNextBucket;
-
-                            /* Increment the element counter */
-                            elementsInBucket++;
-
-                            /* Remove the first element from the next bucket */
-                            nextBucket->removeElementFromBucket(firstElementOfNextBucket);
-                        }
-
-                        /* If the bucket you are currently in has no overflow and the next bucket has 0 elements, delete the next bucket */
-                        if (this->hasOverflow && nextBucket->elementsInBucket == 0) {
-                            delete this->nextBucket;
-                            this->hasOverflow = false;
-                        }
-                    }
-                }
-                else {
-                    nextBucket->removeElementFromBucket(e);
-                }
-            }
-            else {
-                return;
-            }
-        }
-
-        void removeElement(const E& e) {
-
-            if (memberOfBucket(e)) {
-
-                Bucket * motherBucket = this;
-                Bucket * currentBucket = this;
-
-                while (currentBucket != nullptr) {
-                    if (currentBucket->memberOfBucket_(e)) {
-//                        std::cout << "Found" << std::endl;
-
-                        if (currentBucket->hasOverflow) {
-
-//                            std::cout << "Bucket where element is has overflow" << std::endl;
-
-                            size_t elementPosition = currentBucket->findElementPosition(e);
-//                            std::cout << elementPosition << std::endl;
-
-                            Bucket * penultimateBucket = currentBucket;
-                            Bucket * lastBucket = currentBucket;
-
-                            while (penultimateBucket->nextBucket->hasOverflow) {
-                                penultimateBucket = penultimateBucket->nextBucket;
-                            }
-
-                            while (lastBucket->hasOverflow) {
-                                lastBucket = lastBucket->nextBucket;
-                            }
-
-                            currentBucket->v[elementPosition] = lastBucket->v[lastBucket->elementsInBucket-1];
-
-                            lastBucket->elementsInBucket--;
-
-                            if (lastBucket->elementsInBucket == 0) {
-                                delete penultimateBucket->nextBucket;
-                                penultimateBucket->hasOverflow = false;
-                            }
-                        }
-                        else if (!currentBucket->hasOverflow) {
-//                            std::cout << "Bucket where element is has NO overflow" << std::endl;
-
-                            size_t elementPosition = currentBucket->findElementPosition(e);
-//                            std::cout << "Position Of element: " << elementPosition << std::endl;
-
-                            for (size_t i = elementPosition; i < currentBucket->elementsInBucket; i++) {
-                                if (currentBucket->elementsInBucket == 1 && currentBucket != motherBucket) {
-//                                    std::cout << "Bucket contains only one element; it will be purged" << std::endl;
-                                    currentBucket->elementsInBucket = 0;
-                                }
-                                else if (currentBucket->elementsInBucket > 0) {
-//                                    std::cout << "Bucket contains multiple elements; only the desired element will be purged" << std::endl;
-                                    if (i+1 < currentBucket->elementsInBucket) {
-                                        v[i] = v[i+1];
-                                    }
-                                }
-                            }
-
-                            elementsInBucket--;
-                        }
-
-                        return;
-                    }
-//                    std::cout << "Switching to next bucket" << std::endl;
-                    currentBucket = currentBucket->nextBucket;
-                }
-
-            }
-            else {
-                return;
-            }
-
-//            Bucket * currentBucket = this;
-//
-//            if (memberOfBucket(e)) {
-//
-//                while (currentBucket != nullptr) {
-//                    if (currentBucket->memberOfBucket_(e) && !currentBucket->is_overflow() && currentBucket->getNumberOfElementsInBucket() > 0) {
-//
-//                        size_t positionOfElement = currentBucket->findElementPosition(e);
-//
-//                        for (size_t i = positionOfElement; i < elementsInBucket; i++) {
-//
-//                            if (!(i+1 >= elementsInBucket)) {
-//                                v[i] = v[i+1];
-//                            }
-//
-//                        }
-//                        elementsInBucket--;
-//                    }
-//
-//                    else if (currentBucket->memberOfBucket_(e) && currentBucket->is_overflow() && currentBucket->nextBucket->getNumberOfElementsInBucket() > 0) {
-//                        size_t positionOfElement = currentBucket->findElementPosition(e);
-//
-//                        Bucket * currentBucketNextBucket = currentBucket->getNextBucketPointer();
-//
-//                        currentBucket->v[positionOfElement] = currentBucketNextBucket->getElement(currentBucketNextBucket->getNumberOfElementsInBucket()-1);
-//
-//                        currentBucketNextBucket->elementsInBucket--;
-//
-//                        if (currentBucketNextBucket->getNumberOfElementsInBucket() == 0) {
-//                            delete currentBucketNextBucket;
-//                        }
-//                    }
-//
-//                    currentBucket->getNextBucketPointer();
-//                }
-//            }
-//            else {
-//                return;
-//            }
-
-
-        }
-
         void removeWithFlag(const E& e) {
 
             if (memberOfBucket(e)) {
@@ -313,15 +108,33 @@ class HermansLinearHashtable : public Container<E> {
 
                     if (currentBucket->memberOfBucket_(e)) {
                         size_t postionOfELement = currentBucket->findElementPosition(e);
-                        Bucket * lastBucket = getLastBucketPointer();
+
+                        Bucket * lastBucket = this;
+                        while (lastBucket != nullptr) {
+                            if (lastBucket->nextBucket == nullptr) {
+                                break;
+                            }
+                            lastBucket = lastBucket->nextBucket;
+                        }
+
                         currentBucket->v[postionOfELement] = lastBucket->v[lastBucket->elementsInBucket-1];
                         lastBucket->elementsInBucket--;
-                        Bucket * beforeLastBucket = getBeforeLastBucketPointer();
+
+                        Bucket * beforeLastBucketPointer = this;
+                        while (!beforeLastBucketPointer->lastBucket) {
+                            if (beforeLastBucketPointer->nextBucket != nullptr && beforeLastBucketPointer->nextBucket->nextBucket ==
+                                                                                  nullptr) {
+                                break;
+                            }
+                            beforeLastBucketPointer = beforeLastBucketPointer->nextBucket;
+                        }
+
+
                         if (lastBucket->elementsInBucket == 0) {
-                            delete beforeLastBucket->nextBucket;
-                            beforeLastBucket->nextBucket = nullptr;
-                            beforeLastBucket->lastBucket = true;
-                            beforeLastBucket->hasOverflow = false;
+                            delete beforeLastBucketPointer->nextBucket;
+                            beforeLastBucketPointer->nextBucket = nullptr;
+                            beforeLastBucketPointer->lastBucket = true;
+                            beforeLastBucketPointer->hasOverflow = false;
                         }
                     }
 
@@ -511,8 +324,6 @@ class HermansLinearHashtable : public Container<E> {
                 /* If the target bucket is full; a split will occur */
             else if (targetBucket->is_full()) {
 
-//                targetBucket->setLastBucket(false);
-
                 /* Insert the element into the original table at the index */
                 hashTable[index]->addElementInBucket(e);
 
@@ -583,9 +394,9 @@ class HermansLinearHashtable : public Container<E> {
 
     void remove_(const E& e) {
         if (member_(e)) {
-//            std::cout << e;
+
             size_t elementToBeDeletedBucketIndex = getIndex(e, this->d);
-//            std::cout << elementToBeDeletedBucketIndex;
+
             hashTable[elementToBeDeletedBucketIndex]->removeWithFlag(e);
         }
         else {
@@ -615,22 +426,6 @@ class HermansLinearHashtable : public Container<E> {
         else {
             return found;
         }
-    }
-
-    /**
-     * Temporary function for min max
-     * @return [description]
-     */
-    E getAnElement() const {
-        E element;
-        for (size_t i = 0; i < tableSize; i++) {
-            Bucket * currentBucket = hashTable[i];
-            if (currentBucket->hasElements()) {
-                element = currentBucket->getElement();
-                return element;
-            }
-        }
-        return element;
     }
 
     void mergeSort(E values[], size_t lowerBound, size_t upperBound) const;
@@ -859,8 +654,6 @@ size_t HermansLinearHashtable<E,N>::apply(std::function<void(const E&)> f, Order
                     currentBucket = currentBucket->getNextBucketPointer();
                 }
             }
-
-            // IF REQUIRED TO CHECK FOR SEG FAULT WHEN ARRAY EMPTY
 
             mergeSort(values, 0, size()-1);
 
