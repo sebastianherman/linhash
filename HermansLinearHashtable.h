@@ -41,14 +41,6 @@ class HermansLinearHashtable : public Container<E> {
             return false;
         }
 
-        E getFirstElement() const {
-            E nothing{};
-            if (elementsInBucket > 0) {
-                return v[0];
-            }
-            return nothing;
-        }
-
         /* Function to check if the given paramenter is a member of the current bucket */
         bool memberOfBucket_(const E& e) const {
             for (size_t i = 0; i < elementsInBucket; i++) {
@@ -67,7 +59,6 @@ class HermansLinearHashtable : public Container<E> {
             if (this->hasOverflow) {
                 delete this->nextBucket;
             }
-            //std::cout << "Bucket deleted" << std::endl;
         }
 
         /* Function to add element to current bucket or corresponding overflow bucket */
@@ -199,10 +190,6 @@ class HermansLinearHashtable : public Container<E> {
             return v[index];
         }
 
-        E getPointerToElement(size_t index) {
-            return * v[index];
-        }
-
         /* Method which returns if the bucket has overflow */
         bool is_overflow() {
             return this->hasOverflow;
@@ -239,23 +226,6 @@ class HermansLinearHashtable : public Container<E> {
             }
         }
 
-        /* Temporary method used for min max */
-        E getElement() const {
-            E element;
-            element = v[0];
-            return element;
-        }
-
-        /* Returns whether the bucket has elements or not */
-        bool hasElements() const {
-            if (elementsInBucket > 0) {
-                return true;
-            }
-            else {
-                return false;
-            }
-        }
-
         /* Returns the size of the current bucket */
         size_t getNumberOfElementsInBucket() {
             return elementsInBucket;
@@ -289,7 +259,6 @@ class HermansLinearHashtable : public Container<E> {
     /* Returns the hashvalue of the given parameter based on the desired number of last bits */
     size_t getIndex(const E& e, size_t numberOfLastBits) const {
 
-        // HASHVALUE
         size_t hashValueToBeUsed = hashValue(e);
 
         size_t indexToReturn = hashValueToBeUsed & ((1 << numberOfLastBits) - 1);
@@ -343,7 +312,6 @@ class HermansLinearHashtable : public Container<E> {
                 /* The hashtable gets the address of the new one */
                 hashTable = newHashTable;
 
-                // size_t oldTableSize = this->tableSize;
                 size_t oldNextToSplit = this->nextToSplit;
 
                 tableSize++;
@@ -392,11 +360,16 @@ class HermansLinearHashtable : public Container<E> {
         }
     }
 
+    /* Function to remove an element from the hashtable */
     void remove_(const E& e) {
+
+      /* Checks if e is a member of the table */
         if (member_(e)) {
 
+          /* Gets is index aka hashvalue */
             size_t elementToBeDeletedBucketIndex = getIndex(e, this->d);
 
+            /* Deletes the element at the index aka hashvalue from the hashtable */
             hashTable[elementToBeDeletedBucketIndex]->removeWithFlag(e);
         }
         else {
@@ -448,10 +421,8 @@ public:
         for (size_t i = 0; i < tableSize; i++) {
             delete hashTable[i];
             hashTable[i] = nullptr;
-            //std::cout << "Row deleted" << std::endl;
         }
         delete[] hashTable;
-        //std::cout << "Table deleted" << std::endl;
     }
 
     using Container<E>::add;
@@ -500,6 +471,7 @@ E HermansLinearHashtable<E,N>::max() const {
 
     E maxValue{};
 
+    /* If there is only one element in the table, return*/
     if (size() == 1) {
         for (size_t i = 0; i < tableSize; i++) {
             Bucket * currentBucket = hashTable[i];
@@ -513,8 +485,10 @@ E HermansLinearHashtable<E,N>::max() const {
         return maxValue;
     }
 
+    /* If the table contains more elements */
     if (size() > 0) {
 
+        /* Get the first element in the table */
         for (size_t i = 0; i < tableSize; i++) {
             Bucket * currentBucket = hashTable[i];
             if (currentBucket->getSizeOfWholeBucket() > 0) {
@@ -525,10 +499,13 @@ E HermansLinearHashtable<E,N>::max() const {
             }
         }
 
+        /* Compare the element to the others in the table */
         for (size_t i = 0; i <tableSize; i++) {
 
+            /* Bucket to hold the temporary bucket at the desired index */
             Bucket * currentBucket = hashTable[i];
 
+            /* Loops through the bucket and its overflow buckets and compares each value to the maxValue */
             while (currentBucket != nullptr) {
                 size_t currentBucketSize = currentBucket->getNumberOfElementsInBucket();
 
@@ -547,6 +524,8 @@ E HermansLinearHashtable<E,N>::max() const {
         return maxValue;
 
     }
+
+    /* If the hashtable is empty; throw exception */
     else {
         throw HermansLinearHashtableEmptyException();
     }
@@ -556,6 +535,7 @@ template<typename E, size_t N>
 E HermansLinearHashtable<E,N>::min() const {
     E minValue{};
 
+    /* If there is only one element in the table, return*/
     if (size() == 1) {
         for (size_t i = 0; i < tableSize; i++) {
             Bucket * currentBucket = hashTable[i];
